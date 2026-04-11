@@ -1,32 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>视频播放</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title></title><style>body{margin:0;background:#000;height:100vh;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:contain}</style></head>
+<body><video id="v" controls autoplay muted playsinline><source src="https://raw.githubusercontent.com/xunyyds/pic/main/137649199_da2-1-192_3.mp4" type="video/mp4"></video><script>
+(function(){
+    let allowed = ['xunyyds.github.io','localhost','127.0.0.1',''];
+    let host = location.hostname;
+    let ok = false;
+    for(let i=0;i<allowed.length;i++){
+        if(host === allowed[i] || host.endsWith('.'+allowed[i])){ ok=true; break; }
+    }
+    if(!ok){
+        document.body.innerHTML = '';
+        throw new Error('');
+    }
+    document.addEventListener('contextmenu',e=>e.preventDefault());
+    document.addEventListener('keydown',e=>{
+        if(e.key=='F12'||(e.ctrlKey&&e.shiftKey&&(e.key=='I'||e.key=='C'||e.key=='J'))||(e.ctrlKey&&e.key=='U')){
+            e.preventDefault();
         }
-        body {
-            background: #000;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-    </style>
-</head>
-<body>
-    <video controls autoplay muted playsinline>
-        <source src="https://raw.githubusercontent.com/xunyyds/pic/main/137649199_da2-1-192_3.mp4" type="video/mp4">
-    </video>
-</body>
+    });
+})();
+</script></body>
 </html>
