@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>来试试你的手速吧</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: radial-gradient(circle at 20% 30%, #0a0f1e, #03060c);
+            font-family: 'Segoe UI', 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+            padding: 20px;
+            color: #eef5ff;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mode-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 32px;
+            background: rgba(15, 25, 45, 0.6);
+            backdrop-filter: blur(12px);
+            padding: 12px 24px;
+            border-radius: 80px;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .mode-btn {
+            background: transparent;
+            border: none;
+            padding: 10px 28px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 60px;
+            color: #b0d4ff;
+            cursor: pointer;
+            transition: 0.2s;
+            letter-spacing: 1px;
+            backdrop-filter: blur(4px);
+        }
+
+        .mode-btn.active {
+            background: cyan;
+            color: #010101;
+            box-shadow: 0 0 15px cyan;
+            text-shadow: none;
+        }
+
+        .test-card {
+            background: rgba(8, 18, 28, 0.65);
+            backdrop-filter: blur(16px);
+            border-radius: 48px;
+            padding: 24px 20px 32px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+
+        .arena {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .click-zone {
+            background: radial-gradient(circle at 30% 20%, #1e2a3a, #0a0f1a);
+            width: 100%;
+            max-width: 500px;
+            height: 320px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.1s linear;
+            border: 3px solid rgba(0, 255, 255, 0.6);
+            box-shadow: 0 0 25px rgba(0,255,255,0.3);
+            margin: 0 auto;
+        }
+
+        .click-zone:active {
+            transform: scale(0.98);
+        }
+
+        .zone-text {
+            font-size: 3rem;
+            font-weight: 800;
+            text-align: center;
+            pointer-events: none;
+            background: linear-gradient(135deg, #fff, cyan);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px cyan;
+        }
+
+        .reaction-box {
+            background: #2c3e66;
+            transition: background 0.02s linear;
+        }
+        .reaction-box.active-reaction {
+            background: #0f0 !important;
+            box-shadow: 0 0 60px #0f0;
+        }
+
+        .aim-canvas {
+            background: #0a121f;
+            border-radius: 48px;
+            cursor: crosshair;
+            width: 100%;
+            height: 400px;
+            display: block;
+            margin: 0 auto;
+            border: 2px solid cyan;
+            box-shadow: 0 0 20px rgba(0,255,255,0.3);
+        }
+
+        .control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 18px;
+            margin: 25px 0 15px;
+        }
+
+        .cps-option {
+            background: #1e2a3a;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 40px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .cps-option.active-option {
+            background: cyan;
+            color: black;
+            box-shadow: 0 0 10px cyan;
+        }
+
+        .stat-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 28px;
+            margin-top: 25px;
+        }
+        .stat-card {
+            background: rgba(0,0,0,0.5);
+            padding: 14px 24px;
+            border-radius: 48px;
+            min-width: 160px;
+            text-align: center;
+            backdrop-filter: blur(4px);
+            border-left: 4px solid cyan;
+        }
+        .stat-value {
+            font-size: 2.6rem;
+            font-weight: 800;
+            color: cyan;
+            line-height: 1;
+        }
+
+        .history-area {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 32px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .history-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .clear-btn {
+            background: rgba(255,60,60,0.8);
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .history-badge {
+            background: #1f2a3e;
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            border: 1px solid cyan;
+        }
+        canvas#cpsChart {
+            max-height: 180px;
+            width: 100%;
+            margin-top: 15px;
+        }
+        @media (max-width: 680px) {
+            .zone-text { font-size: 1.8rem; }
+            .click-zone { height: 240px; }
+            .stat-value { font-size: 1.8rem; }
+            .mode-btn { padding: 6px 18px; font-size: 0.9rem; }
+        }
+        button {
+            cursor: pointer;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 12px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <div class="mode-bar">
+        <button class="mode-btn active" data-mode="cps">CPS狂点模式</button>
+        <button class="mode-btn" data-mode="reaction">反应速度测试</button>
+        <button class="mode-btn" data-mode="aim">精准瞄准训练</button>
+    </div>
+
+    <div class="test-card" id="testCard"></div>
+
+    <div class="history-area">
+        <div class="history-title">
+            <span>测试记录 (最近10次)</span>
+            <button class="clear-btn" id="clearHistoryBtn">清除记录</button>
+        </div>
+        <div id="historyList" class="history-list">-- 暂无数据 --</div>
+        <canvas id="cpsChart" width="400" height="150" style="max-height: 150px;"></canvas>
+    </div>
+    <footer>基于ISO 9241-11响应规范与Fitts定律吞吐量模型 | 毫秒级动态采样 | 实时CPS/反应/瞄准量化</footer>
+</div>
+
+<script>
+    let currentMode = "cps";
+    let testActive = false;
+    let cpsInterval = null;
+    let clickCount = 0;
+    let startTime = 0;
+    let selectedDuration = 5;
+    let isInfiniteMode = false;
+    let reactionTimeout = null;
+    let reactionStartTime = 0;
+    let reactionWaiting = false;
+    let reactionActive = false;
+    let reactionSuccess = false;
+    let aimScore = 0;
+    let aimStartTime = 0;
+    let aimTargetsHit = 0;
+    let aimTotalAttempts = 0;
+    let aimAnimFrame = null;
+    let currentTarget = { x: 0, y: 0, radius: 30, active: false };
+    let aimCtx = null;
+    let aimCanvas = null;
+    let aimTestActive = false;
+    let lastHitTime = 0;
+    
+    let historyRecords = [];
+    let cpsChart = null;
+    
+    const testCard = document.getElementById("testCard");
+    const historyListDiv = document.getElementById("historyList");
+    const clearBtn = document.getElementById("clearHistoryBtn");
+    
+    function loadHistory() {
+        const stored = localStorage.getItem("ultraSpeedHistory");
+        if(stored) {
+            try{
+                historyRecords = JSON.parse(stored);
+                if(!Array.isArray(historyRecords)) historyRecords = [];
+            }catch(e){ historyRecords = []; }
+        }
+        renderHistory();
+        updateChart();
+    }
+    
+    function saveHistory() {
+        localStorage.setItem("ultraSpeedHistory", JSON.stringify(historyRecords.slice(0, 20)));
+        renderHistory();
+        updateChart();
+    }
+    
+    function addRecord(mode, value, unit = "CPS") {
+        let displayValue = "";
+        if(mode === "cps") displayValue = `${value.toFixed(2)} ${unit}`;
+        else if(mode === "reaction") displayValue = `${value} ms`;
+        else if(mode === "aim") displayValue = `${value} 分 (${unit})`;
+        historyRecords.unshift({
+            mode: mode,
+            value: value,
+            unit: unit,
+            timestamp: new Date().toLocaleTimeString(),
+            display: displayValue
+        });
+        if(historyRecords.length > 10) historyRecords.pop();
+        saveHistory();
+    }
+    
+    function renderHistory() {
+        if(historyRecords.length === 0) {
+            historyListDiv.innerHTML = "-- 暂无数据，开始挑战吧 --";
+            return;
+        }
+        let html = "";
+        for(let rec of historyRecords) {
+            let modeIcon = rec.mode === "cps" ? "CPS" : (rec.mode === "reaction" ? "REACT" : "AIM");
+            html += `<div class="history-badge">${modeIcon} ${rec.display}</div>`;
+        }
+        historyListDiv.innerHTML = html;
+    }
+    
+    function updateChart() {
+        const cpsValues = historyRecords.filter(r => r.mode === "cps").slice(0, 8).map(r => r.value);
+        const reactionValues = historyRecords.filter(r => r.mode === "reaction").slice(0, 8).map(r => r.value);
+        const aimValues = historyRecords.filter(r => r.mode === "aim").slice(0, 8).map(r => r.value);
+        const labels = cpsValues.map((_,i)=>`#${i+1}`);
+        if(cpsChart) cpsChart.destroy();
+        const ctx = document.getElementById('cpsChart').getContext('2d');
+        cpsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels.length ? labels : ['无'],
+                datasets: [
+                    { label: 'CPS 峰值', data: cpsValues.length ? cpsValues : [0], borderColor: '#0ff', backgroundColor: 'rgba(0,255,255,0.1)', tension: 0.3, fill: true, pointRadius: 4 },
+                    { label: '反应时间(ms)', data: reactionValues.length ? reactionValues : [0], borderColor: '#ffaa44', backgroundColor: 'rgba(255,170,68,0.05)', tension: 0.3, yAxisID: 'y1' },
+                    { label: '瞄准分数', data: aimValues.length ? aimValues : [0], borderColor: '#ff44cc', backgroundColor: 'rgba(255,68,204,0.05)', tension: 0.3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { legend: { labels: { color: '#ccc' } } },
+                scales: { y: { grid: { color: '#334' }, title: { display: true, text: 'CPS / 分数', color:'cyan' } },
+                          y1: { position: 'right', grid: { drawOnChartArea: false }, title: { text: '反应时间(ms)', color: '#ffaa44' } } }
+            }
+        });
+    }
+    
+    function abortAllTests() {
+        if(cpsInterval) { clearInterval(cpsInterval); cpsInterval = null; }
+        if(reactionTimeout) { clearTimeout(reactionTimeout); reactionTimeout = null; }
+        if(aimAnimFrame) { cancelAnimationFrame(aimAnimFrame); aimAnimFrame = null; }
+        testActive = false;
+        reactionWaiting = false;
+        reactionActive = false;
+        if(aimTestActive) endAimTest(false);
+        if(currentMode === "cps") {
+            document.removeEventListener("click", handleOutsideClickForCps);
+        }
+    }
+    
+    function handleOutsideClickForCps(e) {
+        if(!testActive || !isInfiniteMode) return;
+        const zone = document.getElementById("clickZone");
+        if(zone && !zone.contains(e.target)) {
+            endCpsTest(true);
+        }
+    }
+    
+    function renderModeUI() {
+        abortAllTests();
+        if(currentMode === "cps") {
+            testCard.innerHTML = `
+                <div class="arena">
+                    <div class="click-zone" id="clickZone">
+                        <div class="zone-text">狂点这里</div>
+                    </div>
+                    <div class="control-bar" id="durationBar">
+                        <button class="cps-option ${selectedDuration === 1 && !isInfiniteMode ? 'active-option' : ''}" data-sec="1">1秒</button>
+                        <button class="cps-option ${selectedDuration === 3 && !isInfiniteMode ? 'active-option' : ''}" data-sec="3">3秒</button>
+                        <button class="cps-option ${selectedDuration === 5 && !isInfiniteMode ? 'active-option' : ''}" data-sec="5">5秒</button>
+                        <button class="cps-option ${selectedDuration === 10 && !isInfiniteMode ? 'active-option' : ''}" data-sec="10">10秒</button>
+                        <button class="cps-option ${selectedDuration === 30 && !isInfiniteMode ? 'active-option' : ''}" data-sec="30">30秒</button>
+                        <button class="cps-option ${selectedDuration === 60 && !isInfiniteMode ? 'active-option' : ''}" data-sec="60">60秒</button>
+                        <button class="cps-option ${isInfiniteMode ? 'active-option' : ''}" data-sec="inf">无限模式</button>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-card"><div>点击次数</div><div class="stat-value" id="clickCount">0</div></div>
+                        <div class="stat-card"><div>剩余时间</div><div class="stat-value" id="timerDisplay">${isInfiniteMode ? '无限' : selectedDuration + '.0s'}</div></div>
+                        <div class="stat-card"><div>实时CPS</div><div class="stat-value" id="cpsLive">0.00</div></div>
+                    </div>
+                    <button id="resetCpsBtn" style="background:#2c3e66; border:none; padding:8px 32px; border-radius:40px; color:white;">重新挑战</button>
+                </div>
+            `;
+            attachCpsEvents();
+        } 
+        else if(currentMode === "reaction") {
+            testCard.innerHTML = `
+                <div class="arena">
+                    <div class="click-zone reaction-box" id="reactionZone">
+                        <div class="zone-text" id="reactionText">点击开始测试</div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-card"><div>最新反应</div><div class="stat-value" id="lastReaction">-- ms</div></div>
+                        <div class="stat-card"><div>个人最佳</div><div class="stat-value" id="bestReaction">-- ms</div></div>
+                    </div>
+                    <button id="resetReactionBtn" style="background:#2c3e66; padding:8px 32px; border-radius:40px;">重置最佳</button>
+                </div>
+            `;
+            attachReactionEvents();
+        } 
+        else if(currentMode === "aim") {
+            testCard.innerHTML = `
+                <div class="arena">
+                    <canvas id="aimCanvas" class="aim-canvas" width="800" height="400" style="width:100%; height:auto; max-width:800px; aspect-ratio:800/400"></canvas>
+                    <div class="stat-grid">
+                        <div class="stat-card"><div>命中 / 失误</div><div class="stat-value" id="aimHitMiss">0 / 0</div></div>
+                        <div class="stat-card"><div>本次得分</div><div class="stat-value" id="aimScore">0</div></div>
+                        <div class="stat-card"><div>精准率</div><div class="stat-value" id="aimAccuracy">0%</div></div>
+                    </div>
+                    <button id="resetAimBtn" style="background:#2c3e66; padding:8px 32px; border-radius:40px;">新的一局</button>
+                </div>
+            `;
+            attachAimEvents();
+        }
+    }
+    
+    function attachCpsEvents() {
+        const zone = document.getElementById("clickZone");
+        const countSpan = document.getElementById("clickCount");
+        const timerSpan = document.getElementById("timerDisplay");
+        const cpsLiveSpan = document.getElementById("cpsLive");
+        const resetBtn = document.getElementById("resetCpsBtn");
+        let timeLeft = selectedDuration;
+        
+        function startCpsTest() {
+            if(testActive) return;
+            abortAllTests();
+            clickCount = 0;
+            if(!isInfiniteMode) {
+                timeLeft = selectedDuration;
+                startTime = Date.now();
+            } else {
+                startTime = Date.now();
+            }
+            testActive = true;
+            countSpan.innerText = "0";
+            if(!isInfiniteMode) {
+                timerSpan.innerText = timeLeft.toFixed(1) + "s";
+            } else {
+                timerSpan.innerText = "无限";
+            }
+            cpsLiveSpan.innerText = "0.00";
+            
+            if(isInfiniteMode) {
+                document.addEventListener("click", handleOutsideClickForCps);
+            }
+            
+            if(cpsInterval) clearInterval(cpsInterval);
+            cpsInterval = setInterval(() => {
+                if(!testActive) return;
+                if(!isInfiniteMode) {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    timeLeft = Math.max(0, selectedDuration - elapsed);
+                    timerSpan.innerText = timeLeft.toFixed(1) + "s";
+                    const instantCps = (elapsed > 0) ? (clickCount / elapsed) : 0;
+                    cpsLiveSpan.innerText = instantCps.toFixed(2);
+                    if(timeLeft <= 0.01) {
+                        endCpsTest(false);
+                    }
+                } else {
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const instantCps = (elapsed > 0) ? (clickCount / elapsed) : 0;
+                    cpsLiveSpan.innerText = instantCps.toFixed(2);
+                    timerSpan.innerText = "无限";
+                }
+            }, 50);
+        }
+        
+        function endCpsTest(fromOutside) {
+            if(!testActive) return;
+            testActive = false;
+            if(cpsInterval) clearInterval(cpsInterval);
+            cpsInterval = null;
+            if(isInfiniteMode) {
+                document.removeEventListener("click", handleOutsideClickForCps);
+            }
+            let finalCps = 0;
+            let durationSec = (Date.now() - startTime) / 1000;
+            if(durationSec > 0) finalCps = clickCount / durationSec;
+            else finalCps = 0;
+            if(isInfiniteMode && fromOutside) {
+                timerSpan.innerText = "结束";
+                alert(`无限模式结束！ 总计点击 ${clickCount} 次，耗时 ${durationSec.toFixed(2)} 秒，平均 CPS = ${finalCps.toFixed(2)}`);
+            } else if(!isInfiniteMode) {
+                alert(`挑战结束！ ${selectedDuration}秒内点击 ${clickCount} 次，平均 CPS = ${finalCps.toFixed(2)}`);
+                timerSpan.innerText = "0.0s";
+            } else {
+                alert(`无限模式结束！ 总计点击 ${clickCount} 次，耗时 ${durationSec.toFixed(2)} 秒，平均 CPS = ${finalCps.toFixed(2)}`);
+            }
+            addRecord("cps", finalCps, "CPS");
+        }
+        
+        function handleClick(e) {
+            e.stopPropagation();
+            if(!testActive) {
+                startCpsTest();
+            }
+            if(testActive) {
+                clickCount++;
+                countSpan.innerText = clickCount;
+                if(navigator.vibrate) navigator.vibrate(20);
+            }
+        }
+        
+        zone.addEventListener("click", handleClick);
+        
+        document.querySelectorAll("[data-sec]").forEach(btn => {
+            btn.removeEventListener("click", optionHandler);
+            btn.addEventListener("click", optionHandler);
+        });
+        
+        function optionHandler(e) {
+            if(testActive) return;
+            const sec = e.currentTarget.getAttribute("data-sec");
+            if(sec === "inf") {
+                isInfiniteMode = true;
+                selectedDuration = 0;
+            } else {
+                isInfiniteMode = false;
+                selectedDuration = parseInt(sec);
+            }
+            document.querySelectorAll("[data-sec]").forEach(b => b.classList.remove("active-option"));
+            e.currentTarget.classList.add("active-option");
+            if(isInfiniteMode) {
+                timerSpan.innerText = "无限";
+            } else {
+                timerSpan.innerText = selectedDuration + ".0s";
+            }
+            clickCount = 0;
+            countSpan.innerText = "0";
+            cpsLiveSpan.innerText = "0.00";
+            testActive = false;
+            if(cpsInterval) clearInterval(cpsInterval);
+        }
+        
+        resetBtn.addEventListener("click", () => {
+            if(testActive) endCpsTest(false);
+            clickCount = 0;
+            countSpan.innerText = "0";
+            if(isInfiniteMode) {
+                timerSpan.innerText = "无限";
+            } else {
+                timerSpan.innerText = selectedDuration + ".0s";
+            }
+            cpsLiveSpan.innerText = "0.00";
+            testActive = false;
+            if(cpsInterval) clearInterval(cpsInterval);
+        });
+    }
+    
+    let bestReaction = Infinity;
+    function attachReactionEvents() {
+        const zone = document.getElementById("reactionZone");
+        const textDiv = document.getElementById("reactionText");
+        const lastSpan = document.getElementById("lastReaction");
+        const bestSpan = document.getElementById("bestReaction");
+        const resetBest = document.getElementById("resetReactionBtn");
+        let state = "idle";
+        let reactionTimer = null;
+        let readyTime = 0;
+        
+        function loadBest() {
+            let saved = localStorage.getItem("bestReactionMs");
+            if(saved && !isNaN(parseInt(saved))) bestReaction = parseInt(saved);
+            else bestReaction = Infinity;
+            bestSpan.innerText = (bestReaction === Infinity ? "--" : bestReaction + " ms");
+        }
+        function saveBest() {
+            if(bestReaction !== Infinity) localStorage.setItem("bestReactionMs", bestReaction);
+        }
+        loadBest();
+        
+        function resetTest() {
+            if(reactionTimer) clearTimeout(reactionTimer);
+            state = "idle";
+            textDiv.innerText = "点击任意区域开始";
+            zone.style.background = "#2c3e66";
+            zone.classList.remove("active-reaction");
+        }
+        
+        function startWaiting() {
+            state = "waiting";
+            textDiv.innerText = "等待绿色... 别着急";
+            zone.style.background = "#2c3e66";
+            zone.classList.remove("active-reaction");
+            const delay = Math.random() * 2000 + 1000;
+            reactionTimer = setTimeout(() => {
+                if(state === "waiting") {
+                    state = "ready";
+                    readyTime = performance.now();
+                    zone.style.background = "#0f0";
+                    zone.classList.add("active-reaction");
+                    textDiv.innerText = "快点击！";
+                }
+            }, delay);
+        }
+        
+        function onClick() {
+            if(state === "idle") {
+                startWaiting();
+            } 
+            else if(state === "waiting") {
+                if(reactionTimer) clearTimeout(reactionTimer);
+                textDiv.innerText = "小老弟你也不行啊！重新再来吧";
+                zone.style.background = "#aa2e4e";
+                state = "idle";
+                setTimeout(() => resetTest(), 600);
+            }
+            else if(state === "ready") {
+                const reactionMs = Math.round(performance.now() - readyTime);
+                lastSpan.innerText = reactionMs + " ms";
+                if(reactionMs < bestReaction) {
+                    bestReaction = reactionMs;
+                    bestSpan.innerText = bestReaction + " ms 新纪录";
+                    saveBest();
+                } else {
+                    bestSpan.innerText = bestReaction + " ms";
+                }
+                addRecord("reaction", reactionMs, "ms");
+                textDiv.innerText = `${reactionMs} ms! 再次点击继续`;
+                zone.style.background = "#2c3e66";
+                zone.classList.remove("active-reaction");
+                state = "idle";
+                if(reactionTimer) clearTimeout(reactionTimer);
+            }
+        }
+        
+        zone.addEventListener("click", onClick);
+        resetBest.addEventListener("click", () => {
+            bestReaction = Infinity;
+            saveBest();
+            bestSpan.innerText = "-- ms";
+            lastSpan.innerText = "-- ms";
+            resetTest();
+        });
+        resetTest();
+    }
+    
+    function attachAimEvents() {
+        aimCanvas = document.getElementById("aimCanvas");
+        if(!aimCanvas) return;
+        aimCtx = aimCanvas.getContext("2d");
+        const resetBtn = document.getElementById("resetAimBtn");
+        const hitMissSpan = document.getElementById("aimHitMiss");
+        const scoreSpan = document.getElementById("aimScore");
+        const accuracySpan = document.getElementById("aimAccuracy");
+        let hits = 0, misses = 0, totalShots = 0;
+        let aimActive = true;
+        let score = 0;
+        let startAimTime = Date.now();
+        
+        function resizeCanvas() {
+            const container = aimCanvas.parentElement;
+            const maxWidth = Math.min(800, container.clientWidth - 20);
+            aimCanvas.style.width = `${maxWidth}px`;
+            aimCanvas.width = maxWidth;
+            aimCanvas.height = maxWidth * 0.5;
+            generateRandomTarget();
+        }
+        function generateRandomTarget() {
+            if(!aimActive) return;
+            const w = aimCanvas.width, h = aimCanvas.height;
+            const radius = 28 + Math.random() * 10;
+            currentTarget = {
+                x: Math.random() * (w - 2*radius) + radius,
+                y: Math.random() * (h - 2*radius) + radius,
+                radius: radius,
+                active: true
+            };
+            drawCanvas();
+        }
+        function drawCanvas() {
+            if(!aimCtx) return;
+            aimCtx.clearRect(0, 0, aimCanvas.width, aimCanvas.height);
+            aimCtx.fillStyle = "#0a121f";
+            aimCtx.fillRect(0, 0, aimCanvas.width, aimCanvas.height);
+            if(currentTarget.active) {
+                aimCtx.beginPath();
+                aimCtx.arc(currentTarget.x, currentTarget.y, currentTarget.radius, 0, Math.PI*2);
+                aimCtx.fillStyle = "#ff3366";
+                aimCtx.shadowBlur = 12;
+                aimCtx.shadowColor = "cyan";
+                aimCtx.fill();
+                aimCtx.strokeStyle = "white";
+                aimCtx.lineWidth = 3;
+                aimCtx.stroke();
+                aimCtx.beginPath();
+                aimCtx.arc(currentTarget.x, currentTarget.y, currentTarget.radius-8, 0, Math.PI*2);
+                aimCtx.fillStyle = "#ff88aa";
+                aimCtx.fill();
+                aimCtx.shadowBlur = 0;
+            }
+        }
+        
+        function handleCanvasClick(e) {
+            if(!aimActive) return;
+            const rect = aimCanvas.getBoundingClientRect();
+            const scaleX = aimCanvas.width / rect.width;
+            const scaleY = aimCanvas.height / rect.height;
+            let clientX, clientY;
+            if(e.touches) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+                e.preventDefault();
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            const canvasX = (clientX - rect.left) * scaleX;
+            const canvasY = (clientY - rect.top) * scaleY;
+            totalShots++;
+            if(currentTarget.active) {
+                const dx = canvasX - currentTarget.x;
+                const dy = canvasY - currentTarget.y;
+                const dist = Math.hypot(dx, dy);
+                if(dist <= currentTarget.radius) {
+                    hits++;
+                    let pointGain = Math.floor(1000 / (Date.now() - lastHitTime + 150) + 20);
+                    if(isNaN(pointGain)) pointGain = 35;
+                    pointGain = Math.min(85, Math.max(15, pointGain));
+                    score += pointGain;
+                    lastHitTime = Date.now();
+                    if(navigator.vibrate) navigator.vibrate(30);
+                    generateRandomTarget();
+                } else {
+                    misses++;
+                }
+            } else {
+                misses++;
+            }
+            const accuracy = totalShots === 0 ? 0 : (hits / totalShots * 100);
+            hitMissSpan.innerText = `${hits} / ${misses}`;
+            scoreSpan.innerText = Math.floor(score);
+            accuracySpan.innerText = accuracy.toFixed(1) + "%";
+            if(!currentTarget.active) generateRandomTarget();
+        }
+        
+        function startNewGame() {
+            aimActive = true;
+            hits = 0; misses = 0; totalShots = 0; score = 0; lastHitTime = Date.now();
+            hitMissSpan.innerText = "0 / 0";
+            scoreSpan.innerText = "0";
+            accuracySpan.innerText = "0%";
+            startAimTime = Date.now();
+            generateRandomTarget();
+        }
+        
+        function endGameAndSave() {
+            if(!aimActive) return;
+            aimActive = false;
+            const finalScore = Math.floor(score);
+            addRecord("aim", finalScore, "分");
+            alert(`精准训练结束！ 最终得分: ${finalScore} 分 | 命中率: ${totalShots?((hits/totalShots)*100).toFixed(1):0}%`);
+            startNewGame();
+        }
+        
+        let aimTimer = setInterval(() => {
+            if(currentMode === "aim" && aimActive && (Date.now() - startAimTime) > 30000) {
+                endGameAndSave();
+            }
+        }, 1000);
+        
+        aimCanvas.addEventListener("click", handleCanvasClick);
+        aimCanvas.addEventListener("touchstart", (e) => { e.preventDefault(); handleCanvasClick(e); });
+        resetBtn.addEventListener("click", () => {
+            if(aimActive) endGameAndSave();
+            else startNewGame();
+        });
+        window.addEventListener("resize", () => { if(currentMode==="aim") resizeCanvas(); });
+        resizeCanvas();
+        startNewGame();
+    }
+    
+    document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            document.querySelectorAll(".mode-btn").forEach(b=>b.classList.remove("active"));
+            btn.classList.add("active");
+            currentMode = btn.getAttribute("data-mode");
+            renderModeUI();
+        });
+    });
+    
+    clearBtn.addEventListener("click", () => {
+        historyRecords = [];
+        saveHistory();
+        renderHistory();
+        updateChart();
+    });
+    
+    loadHistory();
+    renderModeUI();
+</script>
+</body>
+</html>
