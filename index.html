@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no"><title>嘿客</title></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover"><title>嘿客</title></head>
 <body>
 <script>
 (function(){
@@ -9,8 +9,8 @@
     for(var i = 0; i < hexUrl.length; i += 2){
         videoUrl += String.fromCharCode(parseInt(hexUrl.substr(i, 2), 16));
     }
-    document.write('<style>*{margin:0;padding:0;box-sizing:border-box}body{background:#000;height:100vh;width:100vw;overflow:hidden;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:cover;display:block;cursor:default}</style>');
-    document.write('<video id="v" autoplay playsinline webkit-playsinline></video>');
+    document.write('<style>*{margin:0;padding:0;box-sizing:border-box}html,body{width:100%;height:100%;background:#000}body{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:contain;display:block}</style>');
+    document.write('<video id="v" autoplay playsinline webkit-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="true" x5-video-orientation="portraint"></video>');
     var v = document.getElementById('v');
     var s = document.createElement('source');
     s.src = videoUrl;
@@ -19,8 +19,25 @@
     v.load();
     v.volume = 1;
     v.muted = false;
-    v.style.pointerEvents = 'none';
-    v.play();
+    var playPromise = v.play();
+    if(playPromise && playPromise.catch){
+        playPromise.catch(function(){
+            document.body.addEventListener('touchstart', function once(){
+                v.play();
+                v.volume = 1;
+                document.body.removeEventListener('touchstart', once);
+            });
+            document.body.addEventListener('click', function once(){
+                v.play();
+                v.volume = 1;
+                document.body.removeEventListener('click', once);
+            });
+        });
+    }
+    setInterval(function(){
+        if(v.volume < 0.99) v.volume = 1;
+        v.muted = false;
+    }, 500);
     document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     document.addEventListener('keydown', function(e){
         if(e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'C' || e.key === 'J')) || (e.ctrlKey && e.key === 'U') || (e.ctrlKey && e.key === 'S')){
