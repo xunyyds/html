@@ -245,6 +245,7 @@
         <button class="mode-btn active" data-mode="cps">CPS狂点模式</button>
         <button class="mode-btn" data-mode="reaction">反应速度测试</button>
         <button class="mode-btn" data-mode="aim">精准瞄准训练</button>
+        <button class="mode-btn" data-mode="ksp">KSP 按键风暴</button>
     </div>
 
     <div class="test-card" id="testCard"></div>
@@ -284,6 +285,13 @@
     let aimTestActive = false;
     let lastHitTime = 0;
     
+    let kspKeyCount = 0;
+    let kspStartTime = 0;
+    let kspInterval = null;
+    let kspActive = false;
+    let kspInfinite = false;
+    let kspDuration = 5;
+    
     let historyRecords = [];
     let cpsChart = null;
     
@@ -314,6 +322,7 @@
         if(mode === "cps") displayValue = `${value.toFixed(2)} ${unit}`;
         else if(mode === "reaction") displayValue = `${value} ms`;
         else if(mode === "aim") displayValue = `${value} 分 (${unit})`;
+        else if(mode === "ksp") displayValue = `${value.toFixed(2)} KPS`;
         historyRecords.unshift({
             mode: mode,
             value: value,
@@ -332,7 +341,7 @@
         }
         let html = "";
         for(let rec of historyRecords) {
-            let modeIcon = rec.mode === "cps" ? "CPS" : (rec.mode === "reaction" ? "REACT" : "AIM");
+            let modeIcon = rec.mode === "cps" ? "CPS" : (rec.mode === "reaction" ? "REACT" : (rec.mode === "aim" ? "AIM" : "KSP"));
             html += `<div class="history-badge">${modeIcon} ${rec.display}</div>`;
         }
         historyListDiv.innerHTML = html;
@@ -342,6 +351,7 @@
         const cpsValues = historyRecords.filter(r => r.mode === "cps").slice(0, 8).map(r => r.value);
         const reactionValues = historyRecords.filter(r => r.mode === "reaction").slice(0, 8).map(r => r.value);
         const aimValues = historyRecords.filter(r => r.mode === "aim").slice(0, 8).map(r => r.value);
+        const kspValues = historyRecords.filter(r => r.mode === "ksp").slice(0, 8).map(r => r.value);
         const labels = cpsValues.map((_,i)=>`#${i+1}`);
         if(cpsChart) cpsChart.destroy();
         const ctx = document.getElementById('cpsChart').getContext('2d');
@@ -352,14 +362,15 @@
                 datasets: [
                     { label: 'CPS 峰值', data: cpsValues.length ? cpsValues : [0], borderColor: '#0ff', backgroundColor: 'rgba(0,255,255,0.1)', tension: 0.3, fill: true, pointRadius: 4 },
                     { label: '反应时间(ms)', data: reactionValues.length ? reactionValues : [0], borderColor: '#ffaa44', backgroundColor: 'rgba(255,170,68,0.05)', tension: 0.3, yAxisID: 'y1' },
-                    { label: '瞄准分数', data: aimValues.length ? aimValues : [0], borderColor: '#ff44cc', backgroundColor: 'rgba(255,68,204,0.05)', tension: 0.3 }
+                    { label: '瞄准分数', data: aimValues.length ? aimValues : [0], borderColor: '#ff44cc', backgroundColor: 'rgba(255,68,204,0.05)', tension: 0.3 },
+                    { label: 'KSP 速率', data: kspValues.length ? kspValues : [0], borderColor: '#aaff88', backgroundColor: 'rgba(170,255,136,0.05)', tension: 0.3 }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: { legend: { labels: { color: '#ccc' } } },
-                scales: { y: { grid: { color: '#334' }, title: { display: true, text: 'CPS / 分数', color:'cyan' } },
+                scales: { y: { grid: { color: '#334' }, title: { display: true, text: 'CPS / 分数 / KPS', color:'cyan' } },
                           y1: { position: 'right', grid: { drawOnChartArea: false }, title: { text: '反应时间(ms)', color: '#ffaa44' } } }
             }
         });
@@ -369,12 +380,16 @@
         if(cpsInterval) { clearInterval(cpsInterval); cpsInterval = null; }
         if(reactionTimeout) { clearTimeout(reactionTimeout); reactionTimeout = null; }
         if(aimAnimFrame) { cancelAnimationFrame(aimAnimFrame); aimAnimFrame = null; }
+        if(kspInterval) { clearInterval(kspInterval); kspInterval = null; }
         testActive = false;
         reactionWaiting = false;
         reactionActive = false;
-        if(aimTestActive) endAimTest(false);
-        if(currentMode === "cps") {
-            document.removeEventListener("click", handleOutsideClickForCps);
+        kspActive = false;
+        document.removeEventListener("click", handleOutsideClickForCps);
+        document.removeEventListener("click", handleOutsideClickForKsp);
+        document.removeEventListener("keydown", globalKspKeyHandler);
+        if(aimTestActive) {
+            aimTestActive = false;
         }
     }
     
@@ -383,6 +398,28 @@
         const zone = document.getElementById("clickZone");
         if(zone && !zone.contains(e.target)) {
             endCpsTest(true);
+        }
+    }
+    
+    function handleOutsideClickForKsp(e) {
+        if(!kspActive || !kspInfinite) return;
+        const zone = document.getElementById("kspZone");
+        if(zone && !zone.contains(e.target)) {
+            endKspTest(true);
+        }
+    }
+    
+    function globalKspKeyHandler(e) {
+        if(currentMode !== "ksp" || !kspActive) return;
+        if(e.code === "Space") {
+            e.preventDefault();
+            e.stopPropagation();
+            if(kspActive) {
+                kspKeyCount++;
+                const countSpan = document.getElementById("kspClickCount");
+                if(countSpan) countSpan.innerText = kspKeyCount;
+                if(navigator.vibrate) navigator.vibrate(10);
+            }
         }
     }
     
@@ -441,6 +478,31 @@
                 </div>
             `;
             attachAimEvents();
+        }
+        else if(currentMode === "ksp") {
+            testCard.innerHTML = `
+                <div class="arena">
+                    <div class="click-zone" id="kspZone" style="cursor:pointer;">
+                        <div class="zone-text">⚡ 空格 / 点击 ⚡</div>
+                    </div>
+                    <div class="control-bar" id="kspDurationBar">
+                        <button class="cps-option ${kspDuration === 1 && !kspInfinite ? 'active-option' : ''}" data-ksp="1">1秒</button>
+                        <button class="cps-option ${kspDuration === 3 && !kspInfinite ? 'active-option' : ''}" data-ksp="3">3秒</button>
+                        <button class="cps-option ${kspDuration === 5 && !kspInfinite ? 'active-option' : ''}" data-ksp="5">5秒</button>
+                        <button class="cps-option ${kspDuration === 10 && !kspInfinite ? 'active-option' : ''}" data-ksp="10">10秒</button>
+                        <button class="cps-option ${kspDuration === 30 && !kspInfinite ? 'active-option' : ''}" data-ksp="30">30秒</button>
+                        <button class="cps-option ${kspDuration === 60 && !kspInfinite ? 'active-option' : ''}" data-ksp="60">60秒</button>
+                        <button class="cps-option ${kspInfinite ? 'active-option' : ''}" data-ksp="inf">无限模式</button>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-card"><div>按键次数</div><div class="stat-value" id="kspClickCount">0</div></div>
+                        <div class="stat-card"><div>剩余时间</div><div class="stat-value" id="kspTimerDisplay">${kspInfinite ? '无限' : kspDuration + '.0s'}</div></div>
+                        <div class="stat-card"><div>实时KPS</div><div class="stat-value" id="kspLive">0.00</div></div>
+                    </div>
+                    <button id="resetKspBtn" style="background:#2c3e66; border:none; padding:8px 32px; border-radius:40px; color:white;">重新挑战</button>
+                </div>
+            `;
+            attachKspEvents();
         }
     }
     
@@ -603,7 +665,7 @@
         function resetTest() {
             if(reactionTimer) clearTimeout(reactionTimer);
             state = "idle";
-            textDiv.innerText = "点击任意区域开始";
+            textDiv.innerText = "点击开始测试";
             zone.style.background = "#2c3e66";
             zone.classList.remove("active-reaction");
         }
@@ -799,6 +861,126 @@
         window.addEventListener("resize", () => { if(currentMode==="aim") resizeCanvas(); });
         resizeCanvas();
         startNewGame();
+    }
+    
+    function attachKspEvents() {
+        const zone = document.getElementById("kspZone");
+        const countSpan = document.getElementById("kspClickCount");
+        const timerSpan = document.getElementById("kspTimerDisplay");
+        const kpsLiveSpan = document.getElementById("kspLive");
+        const resetBtn = document.getElementById("resetKspBtn");
+        let timeLeft = kspDuration;
+        
+        function startKspTest() {
+            if(kspActive) return;
+            abortAllTests();
+            kspKeyCount = 0;
+            if(!kspInfinite) {
+                timeLeft = kspDuration;
+                kspStartTime = Date.now();
+            } else {
+                kspStartTime = Date.now();
+            }
+            kspActive = true;
+            countSpan.innerText = "0";
+            timerSpan.innerText = kspInfinite ? "无限" : timeLeft.toFixed(1) + "s";
+            kpsLiveSpan.innerText = "0.00";
+            
+            document.addEventListener("keydown", globalKspKeyHandler);
+            if(kspInfinite) {
+                document.addEventListener("click", handleOutsideClickForKsp);
+            }
+            
+            if(kspInterval) clearInterval(kspInterval);
+            kspInterval = setInterval(() => {
+                if(!kspActive) return;
+                if(!kspInfinite) {
+                    const elapsed = (Date.now() - kspStartTime) / 1000;
+                    timeLeft = Math.max(0, kspDuration - elapsed);
+                    timerSpan.innerText = timeLeft.toFixed(1) + "s";
+                    const instantKps = elapsed > 0 ? (kspKeyCount / elapsed) : 0;
+                    kpsLiveSpan.innerText = instantKps.toFixed(2);
+                    if(timeLeft <= 0.01) {
+                        endKspTest(false);
+                    }
+                } else {
+                    const elapsed = (Date.now() - kspStartTime) / 1000;
+                    const instantKps = elapsed > 0 ? (kspKeyCount / elapsed) : 0;
+                    kpsLiveSpan.innerText = instantKps.toFixed(2);
+                    timerSpan.innerText = "无限";
+                }
+            }, 50);
+        }
+        
+        function endKspTest(fromOutside) {
+            if(!kspActive) return;
+            kspActive = false;
+            if(kspInterval) clearInterval(kspInterval);
+            kspInterval = null;
+            document.removeEventListener("keydown", globalKspKeyHandler);
+            if(kspInfinite) {
+                document.removeEventListener("click", handleOutsideClickForKsp);
+            }
+            let finalKps = 0;
+            let durationSec = (Date.now() - kspStartTime) / 1000;
+            if(durationSec > 0) finalKps = kspKeyCount / durationSec;
+            if(kspInfinite && fromOutside) {
+                timerSpan.innerText = "结束";
+                alert(`无限KSP结束！ 总计按键 ${kspKeyCount} 次，耗时 ${durationSec.toFixed(2)} 秒，平均 KPS = ${finalKps.toFixed(2)}`);
+            } else if(!kspInfinite) {
+                alert(`挑战结束！ ${kspDuration}秒内按键 ${kspKeyCount} 次，平均 KPS = ${finalKps.toFixed(2)}`);
+                timerSpan.innerText = "0.0s";
+            } else {
+                alert(`无限KSP结束！ 总计按键 ${kspKeyCount} 次，耗时 ${durationSec.toFixed(2)} 秒，平均 KPS = ${finalKps.toFixed(2)}`);
+            }
+            addRecord("ksp", finalKps, "KPS");
+        }
+        
+        function handleZoneClick(e) {
+            e.stopPropagation();
+            if(!kspActive) {
+                startKspTest();
+            }
+            if(kspActive) {
+                kspKeyCount++;
+                countSpan.innerText = kspKeyCount;
+                if(navigator.vibrate) navigator.vibrate(10);
+            }
+        }
+        
+        zone.addEventListener("click", handleZoneClick);
+        
+        document.querySelectorAll("[data-ksp]").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                if(kspActive) return;
+                const sec = e.currentTarget.getAttribute("data-ksp");
+                if(sec === "inf") {
+                    kspInfinite = true;
+                    kspDuration = 0;
+                } else {
+                    kspInfinite = false;
+                    kspDuration = parseInt(sec);
+                }
+                document.querySelectorAll("[data-ksp]").forEach(b => b.classList.remove("active-option"));
+                e.currentTarget.classList.add("active-option");
+                timerSpan.innerText = kspInfinite ? "无限" : kspDuration + ".0s";
+                kspKeyCount = 0;
+                countSpan.innerText = "0";
+                kpsLiveSpan.innerText = "0.00";
+                kspActive = false;
+                if(kspInterval) clearInterval(kspInterval);
+            });
+        });
+        
+        resetBtn.addEventListener("click", () => {
+            if(kspActive) endKspTest(false);
+            kspKeyCount = 0;
+            countSpan.innerText = "0";
+            timerSpan.innerText = kspInfinite ? "无限" : kspDuration + ".0s";
+            kpsLiveSpan.innerText = "0.00";
+            kspActive = false;
+            if(kspInterval) clearInterval(kspInterval);
+        });
     }
     
     document.querySelectorAll(".mode-btn").forEach(btn => {
