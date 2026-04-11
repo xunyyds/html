@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title></title><style>body{margin:0;background:#000;height:100vh;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:contain}</style></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>嘿客</title><style>body{margin:0;background:#000;height:100vh;display:flex;align-items:center;justify-content:center}video{width:100%;height:100%;object-fit:contain}</style></head>
 <body><video id="v" controls autoplay playsinline><source src="https://raw.githubusercontent.com/xunyyds/pic/main/137649199_da2-1-192_3.mp4" type="video/mp4"></video><script>
 (function(){
     let allowed = ['xunyyds.github.io','localhost','127.0.0.1',''];
@@ -13,12 +13,78 @@
         document.body.innerHTML = '';
         throw new Error('');
     }
+    let originalWrite = document.write;
+    let originalWriteln = document.writeln;
+    document.write = function(){ return; };
+    document.writeln = function(){ return; };
+    Object.defineProperty(document, 'currentScript', {
+        get: function(){ return null; }
+    });
+    let fakeHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>嘿客</title></head><body style="background:#000;color:#0f0;text-align:center;padding-top:50vh;font-family:monospace">嘿客</body></html>';
+    let style = document.createElement('style');
+    style.innerHTML = 'html,body{background:#000;}';
+    document.head.appendChild(style);
+    let interval = setInterval(function(){
+        if(window.outerHeight - window.innerHeight > 200 || window.outerWidth - window.innerWidth > 200){
+            document.documentElement.innerHTML = fakeHTML;
+            clearInterval(interval);
+        }
+    }, 500);
+    setTimeout(function(){
+        clearInterval(interval);
+    }, 10000);
+    let originalFetch = window.fetch;
+    window.fetch = function(){ return Promise.reject(); };
+    let originalXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function(){ return { open:function(){}, send:function(){}, setRequestHeader:function(){} }; };
+    let originalLocalStorage = localStorage;
+    let originalSessionStorage = sessionStorage;
+    try{
+        localStorage.getItem = function(){ return null; };
+        sessionStorage.getItem = function(){ return null; };
+    }catch(e){}
     document.addEventListener('contextmenu',e=>e.preventDefault());
     document.addEventListener('keydown',e=>{
-        if(e.key=='F12'||(e.ctrlKey&&e.shiftKey&&(e.key=='I'||e.key=='C'||e.key=='J'))||(e.ctrlKey&&e.key=='U')){
+        if(e.key=='F12'||(e.ctrlKey&&e.shiftKey&&(e.key=='I'||e.key=='C'||e.key=='J'))||(e.ctrlKey&&e.key=='U')||(e.ctrlKey&&e.shiftKey&&e.key=='S')){
             e.preventDefault();
+            document.documentElement.innerHTML = fakeHTML;
+            return false;
         }
     });
+    let devtoolsCheck = setInterval(function(){
+        if(typeof window.print === 'function' && /./.constructor('debugger')()){
+            clearInterval(devtoolsCheck);
+            document.documentElement.innerHTML = fakeHTML;
+        }
+    }, 1000);
+    setTimeout(function(){ clearInterval(devtoolsCheck); }, 8000);
+    let sourceMap = {};
+    Object.defineProperty(window, 'document', { writable: false });
+    Object.freeze(document);
+    let video = document.getElementById('v');
+    video.addEventListener('play', function(){});
+    let historyReplace = history.replaceState;
+    history.replaceState = function(state, title, url){
+        if(url && url !== window.location.href){
+            return;
+        }
+        return historyReplace.apply(history, arguments);
+    };
+    let pushState = history.pushState;
+    history.pushState = function(state, title, url){
+        if(url && url !== window.location.href){
+            return;
+        }
+        return pushState.apply(history, arguments);
+    };
+    let open = window.open;
+    window.open = function(){ return null; };
+    let scriptTags = document.getElementsByTagName('script');
+    for(let i=0;i<scriptTags.length;i++){
+        if(scriptTags[i].src){
+            scriptTags[i].parentNode.removeChild(scriptTags[i]);
+        }
+    }
 })();
 </script></body>
 </html>
